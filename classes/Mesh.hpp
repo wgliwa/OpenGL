@@ -4,7 +4,7 @@
 
 #include <stdexcept>
 #include <stb_image.h>
-#include "../../utils/obj_loader.hpp"
+#include "../utils/obj_loader.hpp"
 
 struct MaterialParam {
     glm::vec3 Ambient;
@@ -33,35 +33,6 @@ public:
     Mesh(glm::vec3& init_pos) {
         matModel = glm::mat4(1.0); //todo
     }
-//Mesh(const Mesh &other) {
-//    // Copy vertices, uvs, normals, and material parameters
-//    vertices = other.vertices;
-//    uvs = other.uvs;
-//    normals = other.normals;
-//    material = other.material;
-//
-//    // Generate and bind new OpenGL VAO
-//    glGenVertexArrays(1, &idVAO);
-//    glBindVertexArray(idVAO);
-//
-//    // Copy vertex buffer data
-//    glGenBuffers(1, &idVBO_coord);
-//    glBindBuffer(GL_ARRAY_BUFFER, idVBO_coord);
-//    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(glm::vec3), vertices.data(), GL_STATIC_DRAW);
-//    glGenBuffers(1, &idVBO_uv);
-//    glBindBuffer(GL_ARRAY_BUFFER, idVBO_uv);
-//    glBufferData(GL_ARRAY_BUFFER, uvs.size() * sizeof(glm::vec2), uvs.data(), GL_STATIC_DRAW);
-//    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, NULL);
-//    glEnableVertexAttribArray(2);
-//
-//    glGenBuffers(1, &idVBO_normal);
-//    glBindBuffer(GL_ARRAY_BUFFER, idVBO_normal);
-//    glBufferData(GL_ARRAY_BUFFER, normals.size() * sizeof(glm::vec3), normals.data(), GL_STATIC_DRAW);
-//    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 0, NULL);
-//    glEnableVertexAttribArray(1);
-//
-//    glBindVertexArray(0);
-//}
     void load_vertices_from_file(const std::string &name) {
         if (!loadOBJ(name.c_str(), vertices, uvs, normals))
             throw std::invalid_argument("wrong path");

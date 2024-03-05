@@ -5,7 +5,7 @@
 #include <glm/glm.hpp>
 #include <GL/glew.h>
 #include "ground.hpp"
-#include "mesh/Mesh.hpp"
+#include "Mesh.hpp"
 #include "collider.hpp"
 #include "CSceneObject.hpp"
 #include <glm/gtc/type_ptr.hpp>
@@ -70,12 +70,11 @@ public:
                 if (collider->type == CSceneObject::object_type::stop)
                     collision_check = true;
                 else if (collider->type == CSceneObject::object_type::annoy) {
-                    if (collider->hide==0)
+                    if (collider->hide == 0)
                         blurCallback();
                     collider->hide = 1;
-                }
-                else {
-                    if (collider->hide==0)
+                } else {
+                    if (collider->hide == 0)
                         pointCallback();
                     collider->hide_lol();
                 }
@@ -84,33 +83,8 @@ public:
         if (!collision_check && test_pos.y != 0.0) {
             Position = test_pos;
             update2();
-        } else {
-//            if (val < 0)
-//                Position += Direction * val;
-//            update2();
-
-
         }
-
-
-//        printf("pos: (%f, %f, %f)\n", Position.x, Position.y, Position.z);
-//        printf("test: (%f, %f, %f)\n", test_pos.x, test_pos.y, test_pos.z);
-
-
     }
-
-//    void move2(float val) {
-//        test_pos = Position;
-//        test_pos += Direction * val;
-//        test_pos.y = myGround->getAltitute(glm::vec2(test_pos.x, test_pos.z));
-//        if (test_pos.y != 0.0) {
-//            Position = test_pos;
-//        }
-//        // aktualizacja
-//        update2();
-//    }
-
-    // zmiana orientacji obiektu
     void rotate2(float angle) {
         Angle += angle;
         Direction.x = cos(Angle);

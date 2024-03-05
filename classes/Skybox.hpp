@@ -63,34 +63,21 @@ public:
                         GL_TEXTURE_CUBE_MAP_NEGATIVE_Z
                 };
 
-        // Program
-
-
-        // Vertex arrays
         glGenVertexArrays(1, &SkyBox_VAO);
         glBindVertexArray(SkyBox_VAO);
-
-        // Wspolrzedne wierzchokow
         GLuint vBuffer_pos;
         glGenBuffers(1, &vBuffer_pos);
         glBindBuffer(GL_ARRAY_BUFFER, vBuffer_pos);
         glBufferData(GL_ARRAY_BUFFER, 8 * 3 * sizeof(GLfloat), positions, GL_STATIC_DRAW);
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
         glEnableVertexAttribArray(0);
-
-        // Tablica indeksow
         GLuint vBuffer_idx;
         glGenBuffers(1, &vBuffer_idx);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vBuffer_idx);
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, 12 * 3 * sizeof(GLuint), indices, GL_STATIC_DRAW);
-
         glBindVertexArray(0);
-
-        // Tekstura CUBE_MAP
         glGenTextures(1, &SkyBox_Texture);
         glBindTexture(GL_TEXTURE_CUBE_MAP, SkyBox_Texture);
-
-        // Utworzenie 6 tekstur dla kazdej sciany
         for (int i = 0; i < 6; ++i) {
             int tex_width, tex_height, n;
             unsigned char *tex_data;
@@ -100,15 +87,11 @@ public:
                 printf("Image %s can't be loaded!\n", files[i]);
                 exit(1);
             }
-            // Zaladowanie danych do tekstury OpenGL
             glTexImage2D(targets[i], 0, GL_RGB, tex_width, tex_height, 0, GL_RGB, GL_UNSIGNED_BYTE, tex_data);
-
-            // Zwolnienie pamieci pliku graficznego
             stbi_image_free(tex_data);
 
         }
 
-        // Przykladowe opcje tekstury
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR);
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -120,21 +103,12 @@ public:
     }
 
     void DrawSkyBox(glm::mat4 matProj, glm::mat4 matView) {
-        // Specjalny potok dla SkyBoxa
         glUseProgram(SkyBox_Program);
-
-
-        // Przeskalowanie boxa i przeslanie macierzy rzutowania
-        // korzystajac z macierzy Proj i View naszej sceny
         glm::mat4 matPVM = matProj * matView * glm::scale(glm::mat4(1), glm::vec3(40.0, 40.0, 40.0));
         glUniformMatrix4fv(glGetUniformLocation(SkyBox_Program, "matPVM"), 1, GL_FALSE, glm::value_ptr(matPVM));
-
-        // Aktywacja tekstury CUBE_MAP
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_CUBE_MAP, SkyBox_Texture);
         glUniform1i(glGetUniformLocation(SkyBox_Program, "tex_skybox"), 0);
-
-        // Rendering boxa
         glBindVertexArray(SkyBox_VAO);
         glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, NULL);
         glBindVertexArray(SkyBox_VAO);

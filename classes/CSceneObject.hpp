@@ -1,4 +1,4 @@
-#include "mesh/Mesh.hpp"
+#include "Mesh.hpp"
 #include "collider.hpp"
 
 #ifndef UNTITLED4_CSCENEOBJECT_HPP

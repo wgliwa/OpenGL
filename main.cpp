@@ -4,37 +4,24 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <chrono>
-
 # define STB_IMAGE_IMPLEMENTATION
-
 #include <random>
-#include "classes/mesh/Mesh.hpp"
-//#include "utils/stb_image.h"
-#include "classes/skybox/Skybox.hpp"
+#include "classes/Mesh.hpp"
+#include "classes/Skybox.hpp"
 #include "utils/utilities.hpp"
 #include "classes/player.hpp"
 #include "classes/camera.hpp"
-float quadVertices[] = {
-        0.5f, 1.0f, 0.0f, 1.0f,
-        0.5f, 0.5f, 0.0f, 0.0f,
-        1.0f, 0.5f, 1.0f, 0.0f,
+using Clock = std::chrono::high_resolution_clock;
 
-        0.5f, 1.0f, 0.0f, 1.0f,
-        1.0f, 0.5f, 1.0f, 0.0f,
-        1.0f, 1.0f, 1.0f, 1.0f
-};
-float screen_v[] = {
-        -1.0f, 1.0f, 0.0f, 1.0f,
-        -1.0f, -1.0f, 0.0f, 0.0f,
-        1.0f, -1.0f, 1.0f, 0.0f,
-
-        -1.0f, 1.0f, 0.0f, 1.0f,
-        1.0f, -1.0f, 1.0f, 0.0f,
-        1.0f, 1.0f, 1.0f, 1.0f
-};
-
+void write_to_minimap_fbo();
+void draw_minimap();
+void default_fbo();
+void write_to_postprocessing_fbo();
+void draw_objects();
+void draw_postprocessing();
+void set_uniform();
+std::chrono::time_point<Clock> getTimePoint();
 glm::mat4 matProj;
-glm::mat4 matView;
 int minimap_switch = 0;
 GLuint frame_texture;
 
@@ -42,7 +29,7 @@ void load_texture(GLuint *tex, const std::string &name);
 CTPSCamera myCamera;
 int blurr_duration = 0;
 int pause = 0;
-unsigned int quadVAO, quadVBO;
+unsigned int quadVAO;
 GLuint minimap_fbo, postprocessing_fbo;
 GLuint minimap_depth_buffer, postprocessing_depth_buffer;
 GLuint minimap_texture_buffer;
@@ -55,7 +42,7 @@ GLuint default_program, minimap_program;
 std::vector<CSceneObject *> myColliders;
 std::vector<Mesh *> nonColliders;
 CSceneObject rock, tree, candy,mine;
-using Clock = std::chrono::high_resolution_clock;
+
 int points=0;
 int max_points = 10;
 int victory = 0;
@@ -64,13 +51,40 @@ int blinn = 0;
 int light_on = 1;
 int direction = 0;
 float angle = 0.0;
-float monkey_angle = 0.0;
+auto startTime = getTimePoint();
+auto currentTime = getTimePoint();
+double deltaTime;
+float rotationSpeed, rotationAngle;
+float Time = 0.0;
+unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
+std::mt19937 gen(seed);
+float posX, posZ, radius;
+int window_width = 1280;
+int window_height = 800;
+int buffer_width = 800;
+int buffer_height = 600;
+GLuint SkyBox_Program;
+GLuint postprocessing_texture_buffer;
+GLuint postprocessing_program;
+unsigned int screen_vao, screen_vbo;
+int frame_switch = 1;
+int post_effect = 0;
+GLuint view_frame;
 struct LightParam {
     vec3 Ambient;
     vec3 Diffuse;
     vec3 Specular;
     vec3 Attenuation;
     vec3 Position;
+};
+float screen_v[] = {
+        -1.0f, 1.0f, 0.0f, 1.0f,
+        -1.0f, -1.0f, 0.0f, 0.0f,
+        1.0f, -1.0f, 1.0f, 0.0f,
+
+        -1.0f, 1.0f, 0.0f, 1.0f,
+        1.0f, -1.0f, 1.0f, 0.0f,
+        1.0f, 1.0f, 1.0f, 1.0f
 };
 struct LightParam myLight =
         {
@@ -97,7 +111,7 @@ struct MaterialParam myMaterial[2] =
         };
 
 
-float Time = 0.0;
+
 
 std::chrono::time_point<Clock> getTimePoint() {
     return Clock::now();
@@ -119,46 +133,9 @@ void sendLightParameters(LightParam light) {
     glUniform3fv(glGetUniformLocation(programId, "myLight.Position"), 1, glm::value_ptr(light.Position));
 }
 
-float posX, posZ, radius;
-int window_width = 1280;
-int window_height = 800;
-int buffer_width = 800;
-int buffer_height = 600;
-
-GLuint SkyBox_Program;
 
 
-GLuint postprocessing_texture_buffer;
 
-int posprocessing_depth_buffer;
-
-GLuint postprocessing_program;
-
-unsigned int screen_vao, screen_vbo;
-
-int frame_switch = 1;
-
-int post_effect = 0;
-
-GLuint view_frame;
-
-void write_to_minimap_fbo();
-
-void draw_minimap();
-
-void default_fbo();
-
-void write_to_postprocessing_fbo();
-
-void draw_objects();
-
-void draw_postprocessing();
-
-auto startTime = getTimePoint();
-auto currentTime = getTimePoint();
-double deltaTime;
-float rotationSpeed, rotationAngle;
-void set_uniform();
 
 void DisplayScene() {
     currentTime = getTimePoint();
@@ -168,7 +145,6 @@ void DisplayScene() {
      rotationAngle = rotationSpeed * deltaTime;
     if (pause == 0)
         angle += 0.015f;
-    monkey_angle += 1.0f;
     radius = 3.0f;
     posX = player.Position.x + radius * cos(angle);
     posZ = player.Position.z + radius * sin(angle);
@@ -205,7 +181,6 @@ void set_uniform() {
     glUniform1i(glGetUniformLocation(default_program, "light_on"), light_on);
     glUniform1i(glGetUniformLocation(default_program, "direction"), direction);
     sendLightParameters(myLight);
-
 }
 
 void draw_objects() {
@@ -215,8 +190,6 @@ void draw_objects() {
     mine.move(0.1, 'c');
     player.draw();
     ice.draw();
-//    tree.draw();
-//    grass.draw();
     candy.hover(rotationAngle);
     for (auto &collider: myColliders) {
         if (collider->hide == 0)
@@ -335,20 +308,16 @@ void point(){
 
 void Animation(int frame) {
     Time += 0.01;
-
     glutPostRedisplay();
     glutTimerFunc(1000 / 60, Animation, 0);
     handleBlurEffect();
 }
 
-std::random_device rd;
-unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
-std::mt19937 gen(seed);
+
 void generate_non_collision(Mesh &to_copy, int n) {
     std::uniform_real_distribution<float> dis(-30.0f, 30.0f);
     std::uniform_real_distribution<float> dis_rot(0.0f, 360.0f);
     for (int i = 0; i < n; i++) {
-        // Create a copy of the original object
         Mesh *newObj = new Mesh(to_copy);
         float rot_angle = dis_rot(gen);
         float x = dis(gen);
@@ -364,8 +333,6 @@ void generate_non_collision(Mesh &to_copy, int n) {
     }
 }
 void generate(const CSceneObject &to_copy, int n) {
-//    rock.Collider = new CSphereCollider(&rock.Position, 0.7f);
-
     std::uniform_real_distribution<float> dis(-30.0f, 30.0f);
     std::uniform_real_distribution<float> dis_rot(0.0f, 360.0f);
     for (int i = 0; i < n; i++) {
@@ -382,8 +349,6 @@ void generate(const CSceneObject &to_copy, int n) {
             x = dis(gen);
             z = dis(gen);
             y = ground_col.getAltitute(glm::vec2(x, z));
-//            printf("%d %f %f %f\n", safety, x, y, z);
-
         }
         if (safety>0){
         glm::vec3 newPos(x, y, z);
@@ -399,31 +364,9 @@ void generate(const CSceneObject &to_copy, int n) {
         if (collision_check==0 && !player.Collider->isCollision(newObj->Collider)) {
             myColliders.push_back(newObj);
         }
-        else {
-//            printf("%f %f %f\n", player.Position.x, player.Position.y, player.Position.z);
-//            printf("%f %f %f\n", newObj->Position.x, newObj->Position.y, newObj->Position.z);
-//            printf("%f %f %f\n", x, y, z);
-//            printf("d\n");
+        else
             delete newObj;
-        }
     }}
-//    CSceneObject *newObj1 = new CSceneObject(to_copy);
-//    CSceneObject *newObj2 = new CSceneObject(to_copy);
-//    CSceneObject *newObj3 = new CSceneObject(to_copy);
-//    CSceneObject *newObj4 = new CSceneObject(to_copy);
-//    float max=20.0;
-//    glm::vec3 newPos1(-max,ground_col.getAltitute(glm::vec2(-max,-max)),-max);
-//    newObj1->SetPosition(newPos1);
-//    myColliders.push_back(newObj1);
-//    glm::vec3 newPos2(max,ground_col.getAltitute(glm::vec2(max,max)),max);
-//    newObj2->SetPosition(newPos2);
-//    myColliders.push_back(newObj2);
-//    glm::vec3 newPos3(-max,ground_col.getAltitute(glm::vec2(-max,max)),max);
-//    newObj3->SetPosition(newPos3);
-//    myColliders.push_back(newObj3);
-//    glm::vec3 newPos4(max,ground_col.getAltitute(glm::vec2(max,-max)),-max);
-//    newObj4->SetPosition(newPos4);
-//    myColliders.push_back(newObj4);
 }
 
 void Initialize() {
@@ -437,9 +380,7 @@ void Initialize() {
     glEnable( GL_ALPHA_TEST );
     glAlphaFunc( GL_NOTEQUAL, 0.0 );
 
-    CameraTranslate_x = 0.0;
-    CameraTranslate_y = -1.0;
-    CameraTranslate_z = -12.0;
+
 
     generate_program_and_shaders(&default_program, "shaders/default/vertex.glsl", "shaders/default/fragment.glsl");
     generate_program_and_shaders(&minimap_program, "shaders/minimap_fbo/vertex.glsl",
@@ -467,17 +408,6 @@ void Initialize() {
     ice.idProgram = default_program;
 
 
-    ////////////////////////////////////////////////
-
-
-//    mine.load_vertices_from_file("objects/mine.obj");
-//    mine.scale(2);
-//    mine.material = myMaterial[1];
-//    mine.scale(0.2);
-//    mine.load_texture("textures/mine_texture.jpeg");
-//    mine.idProgram = default_program;
-
-//    kwadrat.createQuad();
     kwadrat.material = myMaterial[1];
     kwadrat.load_texture("textures/metal.jpg");
     kwadrat.idProgram = default_program;
@@ -532,7 +462,6 @@ void Initialize() {
     candy.SetPosition(glm::vec3(-10.0, 0.0, 2.0));
     candy.Collider = new CSphereCollider(&candy.Position, 2.0f);
     candy.idProgram = default_program;
-//    candy.scale(5.0);
     candy.type = CSceneObject::object_type::take;
 
     grass.load_vertices_from_file("objects/flower.obj");
@@ -561,7 +490,6 @@ void Initialize() {
 
 
 
-    create_vao_from_vertices(quadVertices, &quadVAO, &quadVBO, sizeof(quadVertices) / sizeof(quadVertices[0]));
     create_vao_from_vertices(screen_v, &screen_vao, &screen_vbo, sizeof(screen_v) / sizeof(screen_v[0]));
 
     glutTimerFunc(0, Animation, 0);
